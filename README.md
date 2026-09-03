@@ -114,7 +114,13 @@ are explained in section 4.
 | 2048 | 300 | 0.782 | 0.753 | 0.984 | 40 % |
 | 4096 | 500 | 0.825 | 0.806 | 0.984 | 53 % |
 
-The full sweep is `results/capacity.json`.
+![top-1 recall against N, and against load N/d, for d = 256 to 4096](results/capacity.png)
+
+The full sweep, all 40 cells, is `results/capacity.json`, and the figure is
+drawn from that file. The right panel is the same five curves plotted against
+load `N/d`: they nearly collapse onto one another, which is what makes a single
+rule of thumb possible at all, and the residual spread is what makes it a rule
+of thumb rather than a law.
 
 **The rule of thumb, interpolated from the measurements: top-1 recall crosses
 50 % at about `N = d/4`.** Measured crossings: `d=256` at N=88, `d=512` at
@@ -155,6 +161,12 @@ answer if z >= 4 else stay silent
 
 That number is scale-free, so one threshold holds across every dimension and
 every N in the table above. All the `gated` and `cover` columns use `z >= 4`.
+
+![top-1, gated precision and coverage against N, at d = 1024 and d = 2048](results/gate.png)
+
+The blue line is what the memory says; the orange line is what it is right
+about when it agrees to speak; the green line is how often it agrees. Past
+the knee, the blue line is the one that lies to you.
 
 ---
 
