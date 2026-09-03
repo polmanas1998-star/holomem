@@ -181,7 +181,7 @@ nature:
 |---|---|---|
 | **decay** | 45-day half-life | an unconfirmed belief fades instead of being asserted forever. Decay runs from *last confirmation*, not creation: age is not the same thing as irrelevance |
 | **reinforcement** | +0.25 per mention, capped at 1.5 | repetition sharpens. The cap matters: without it one chatty week makes a fact permanently louder than everything since |
-| **contradiction** | weight × 0.35 | superposition is linear, so damping the old belief is *exact*. No index to invalidate, no rebuild. And it is damping, not deletion, which is what lets a system say "you used to say X" instead of quietly rewriting history |
+| **contradiction** | weight × 0.35 | superposition is linear, so damping the old belief is *exact*. No secondary index to invalidate, though the trace itself is recomputed. And it is damping, not deletion, which is what lets a system say "you used to say X" instead of quietly rewriting history |
 | **epochal trace** | a second vector | every fact is also bound to the month it was learned, so dated questions are answerable without adding date crosstalk to the main trace |
 
 There is also a floor: below an effective weight of 0.18 a fact stops entering
@@ -201,9 +201,26 @@ Read this section before building on it.
   reading noise. Section 3 is the map.
 - **Cleanup needs a candidate list.** The raw query output is approximate; you
   must snap it to a known symbol, which means holding the symbols.
-- **Ground truth lives outside.** Keep the plain fact list. The trace is a
-  computed view of it, rebuilt rather than repaired, because every weight
-  depends on the current time.
+- **Ground truth lives outside, so "fixed size" describes the trace, not the
+  system.** Keep the plain fact list: the trace is a computed view of it,
+  rebuilt rather than repaired, because every weight depends on the current
+  time. Total memory is therefore O(N), and only the trace is constant.
+- **It does not scale, and the numbers are worse than the algebra suggests.**
+  `learn()` scans the fact list for duplicates, so inserting N facts is
+  quadratic. `_build()` recomputes every weight. Measured at `d=1024`:
+
+  | N | insert total | rebuild | query | fact list | trace |
+  |---:|---:|---:|---:|---:|---:|
+  | 250 | 0.12 s | 73 ms | 5.1 ms | 52 KB | 16 KB |
+  | 1000 | 5.08 s | 283 ms | 58.8 ms | 210 KB | 16 KB |
+  | 4000 | 75.50 s | 1912 ms | 139.3 ms | 848 KB | 16 KB |
+
+  Sixteen times the facts cost 619 times the insert time. The saving grace is
+  that section 3 already forbids that regime: at `d=1024` top-1 crosses 50 % at
+  N=261, so one trace should never hold 4000 facts. At N=250 the costs above
+  are unremarkable. The capacity ceiling binds before the performance ceiling
+  does, which is luck rather than design.
+  *(Both limits were pointed out by u/carefactor3zero on r/LLMDevs, 2026-09-03.)*
 - **You cannot hand the vector to a language model.** This is the one that
   matters, because the pitch in this space keeps promising it. Every hosted
   model API in production consumes tokens, not vectors. There is no "ghost

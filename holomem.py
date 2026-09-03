@@ -47,14 +47,19 @@ degrade gracefully as the belief gets old.
 
 Properties you get that cosine search over embeddings does not give you:
 
-  fixed size          d complex numbers whether you hold 10 facts or 10 000.
-                      No index to rebuild, no shards, no re-embedding.
+  fixed-size trace    the trace is d complex numbers whether it carries 10
+                      facts or 10 000. No index to rebuild, no shards, no
+                      re-embedding. The rest of the object is NOT fixed: the
+                      fact list is retained as ground truth and the symbol
+                      pools are rebuilt per query, both O(N). See section 6.
   inverse queries     "who works on X?" is the same operation as "what does A
                       work on?", with the arguments swapped. No second index.
   graceful fading     a half-remembered fact still contributes a little to
                       recall. Forgetting is a slope, not a boolean.
   exact subtraction   superposition is linear, so removing a contradicted fact
-                      is exact. There is no index to invalidate.
+                      is exact. There is no SECONDARY index to invalidate,
+                      because there is only one structure. The trace itself is
+                      dropped and recomputed: see _invalidate().
 
 And the honest other side:
 
