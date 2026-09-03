@@ -209,16 +209,20 @@ Read this section before building on it.
   `learn()` scans the fact list for duplicates, so inserting N facts is
   quadratic. `_build()` recomputes every weight. Measured at `d=1024`:
 
+  Median of 3 runs, min-max in brackets, on one idle laptop core:
+
   | N | insert total | rebuild | query | fact list | trace |
   |---:|---:|---:|---:|---:|---:|
-  | 250 | 0.12 s | 73 ms | 5.1 ms | 52 KB | 16 KB |
-  | 1000 | 5.08 s | 283 ms | 58.8 ms | 210 KB | 16 KB |
-  | 4000 | 75.50 s | 1912 ms | 139.3 ms | 848 KB | 16 KB |
+  | 250 | 0.39 s [0.36-0.45] | 45 ms [17-783] | 15.2 ms | 52 KB | 16 KB |
+  | 1000 | 4.86 s [4.58-5.37] | 61 ms [54-399] | 38.0 ms | 210 KB | 16 KB |
+  | 4000 | 75.67 s [70.07-76.56] | 1559 ms [1243-2073] | 124.4 ms | 848 KB | 16 KB |
 
-  Sixteen times the facts cost 619 times the insert time. The saving grace is
+  Sixteen times the facts cost 194 times the insert time; pure quadratic would
+  be 256. The rebuild column is the noisiest thing here, so read its band and
+  not its median. The saving grace is
   that section 3 already forbids that regime: at `d=1024` top-1 crosses 50 % at
-  N=261, so one trace should never hold 4000 facts. At N=250 the costs above
-  are unremarkable. The capacity ceiling binds before the performance ceiling
+  N=261, so one trace should never hold 4000 facts. At N=250 a query is 15 ms
+  and the whole store loads in under half a second. The capacity ceiling binds before the performance ceiling
   does, which is luck rather than design.
   *(Both limits were pointed out by u/carefactor3zero on r/LLMDevs, 2026-09-03.)*
 - **You cannot hand the vector to a language model.** This is the one that
