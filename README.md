@@ -413,4 +413,4 @@ else is in there, that is where to look.
 
 ## License
 
-MIT.
+MIT. Copyright (c) 2026 Dermioz AI, SASU.
