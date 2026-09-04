@@ -5,8 +5,13 @@ bench_capacity.py : how many facts fit in one vector before recall collapses?
 Everything the README claims about capacity is produced by this file. Run it
 and you get the same numbers, or you have found a bug worth reporting:
 
-    python bench_capacity.py               # the full sweep, a few minutes
-    python bench_capacity.py --quick       # a coarse version, ~20 seconds
+    python bench_capacity.py            # the full sweep, ~35 s, 40 cells
+    python bench_capacity.py --quick    # 6 coarse cells, a smoke test
+
+The full sweep is deterministic: every cell is seeded from its own dim and
+N, so a clean checkout reproduces results/capacity.json byte for byte, and
+the README table and both figures are views of that one file. --quick does
+NOT reproduce the table, and writes somewhere else so it cannot pretend to.
 
 WHAT IS MEASURED
 ────────────────
@@ -152,12 +157,26 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--repeats", type=int, default=12)
     ap.add_argument("--quick", action="store_true")
-    ap.add_argument("--out", default="results/capacity.json")
+    ap.add_argument("--out", default=None,
+                    help="default: results/capacity.json, or "
+                         "results/capacity-quick.json under --quick")
     a = ap.parse_args()
 
     dims = (512, 1024) if a.quick else DIMS
     counts = (25, 100, 300) if a.quick else COUNTS
     repeats = 4 if a.quick else a.repeats
+
+    # --quick used to default to the same output path as the full sweep, so a
+    # reader following the README overwrote the 40-cell file the README's table
+    # and both figures are drawn from, and only found out from `git status`. A
+    # coarse run must never be able to stand in for the published one.
+    out = Path(a.out) if a.out else Path(
+        "results/capacity-quick.json" if a.quick else "results/capacity.json")
+
+    if a.quick:
+        print("QUICK: 6 coarse cells, 4 trials each. This is a smoke test, not "
+              "the published table.\n       The README table comes from the "
+              "full sweep: python bench_capacity.py\n")
 
     fidelity_check()
 
@@ -191,9 +210,9 @@ def main() -> int:
                   f"{row['top1_worst']:>7.3f} {pf:>8} {row['coverage']:>7.3f}")
         print()
 
-    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(a.out).write_text(json.dumps(rows, indent=1), encoding="utf-8")
-    print(f"{time.time() - t0:.1f} s  ->  {a.out}")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(rows, indent=1), encoding="utf-8")
+    print(f"{time.time() - t0:.1f} s  ->  {out}")
     return 0
 
 
