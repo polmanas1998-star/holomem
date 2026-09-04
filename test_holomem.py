@@ -219,3 +219,54 @@ def test_the_fact_list_is_the_truth_and_the_trace_is_a_view():
     for s, r, o in reversed(facts):          # insertion order must not matter
         b.learn(s, r, o)
     assert np.allclose(a.trace, b.trace, atol=1e-12)
+
+
+# ── the README ─────────────────────────────────────────────────────────────
+
+def test_readme_example():
+    """Section 2 of the README, run verbatim, down to the printed scores.
+
+    The README used to show this snippet WITHOUT `created_ts` on the lisbon
+    line, and print an answer of 'lisbon' underneath it. That cannot happen: a
+    fact learned without a date is dated today, so the epochal query has no May
+    to find and comes back with a near-noise winner. The block was quoting an
+    output the code could not produce, and nothing in the suite objected.
+
+    Mutation that must fail this: drop `created_ts=MAY` from the lisbon line.
+    The dated query then returns something that is not lisbon.
+    """
+    now = 1788480000.0                          # 2026-09-04 UTC, pinned
+    may = 1778803200.0                          # 2026-05-15 UTC
+    assert epoch_of(may) == "epoch:2026-05"
+
+    m = HolographicMemory(dim=1024, now_fn=lambda: now)
+    m.learn("ana", "works_on", "compiler")
+    m.learn("ana", "lives_in", "lisbon", created_ts=may)
+    m.learn("bruno", "works_on", "scheduler")
+
+    assert m.trace.shape == (1024,)
+    assert len(m) == 3
+    assert m.noise_floor() == pytest.approx(0.0221, abs=5e-5)
+
+    obj, score, margin = m.query("ana", "works_on")
+    assert fold(obj) == "compiler"
+    assert (score, margin) == (pytest.approx(0.580, abs=5e-4),
+                               pytest.approx(0.583, abs=5e-4))
+
+    subj, score, _ = m.query_subject("works_on", "scheduler")
+    assert fold(subj) == "bruno" and score == pytest.approx(0.565, abs=5e-4)
+
+    m.contradict("ana", "lives_in", o="porto")
+    m.learn("ana", "lives_in", "porto")
+
+    obj, score, margin = m.query("ana", "lives_in")
+    assert fold(obj) == "porto"
+    assert (score, margin) == (pytest.approx(0.587, abs=5e-4),
+                               pytest.approx(0.433, abs=5e-4))
+
+    # The line the old README got wrong, and the reason this test exists.
+    obj, score, margin = m.query_at("epoch:2026-05", "ana", "lives_in")
+    assert fold(obj) == "lisbon"
+    assert (score, margin) == (pytest.approx(0.190, abs=5e-4),
+                               pytest.approx(0.175, abs=5e-4))
+    assert score > m.noise_floor()
